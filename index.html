@@ -3273,7 +3273,7 @@ var Selection = {
                     '</select>' +
                     '<span style="font-size:12px;color:var(--muted);">负责人：' + manager.name + '（' + manager.unit + '）</span>' +
                 '</div>' +
-                '<div class="form-hint">选择"必须抽中"时，负责人将优先加入抽取结果</div>' +
+                '<div class="form-hint">选择"必须抽中"时，负责人将占用其对应专业领域的抽取名额</div>' +
             '</div>';
         }
 
@@ -3522,9 +3522,32 @@ var Selection = {
             }
         }
 
+        var managerGroupIdx = -1;
+        if (managerUsed) {
+            var managerExpert = Store.getById('experts', managerId);
+            if (managerExpert) {
+                var managerExp = managerExpert.expertise;
+                for (var mi = 0; mi < self.selectedProject.requirements.length; mi++) {
+                    var mgr = self.selectedProject.requirements[mi];
+                    var mgrExpArr = Array.isArray(mgr.expertise) ? mgr.expertise : [mgr.expertise];
+                    var mgrNeed = self.conditions.reqCounts[mi] || mgr.count;
+                    if (mgrNeed > 0 && mgrExpArr.some(function(ex) { return managerExp.indexOf(ex) >= 0; })) {
+                        managerGroupIdx = mi;
+                        break;
+                    }
+                }
+                if (managerGroupIdx === -1) {
+                    for (var mi2 = 0; mi2 < self.selectedProject.requirements.length; mi2++) {
+                        var mgrNeed2 = self.conditions.reqCounts[mi2] || self.selectedProject.requirements[mi2].count;
+                        if (mgrNeed2 > 0) { managerGroupIdx = mi2; break; }
+                    }
+                }
+            }
+        }
+
         this.selectedProject.requirements.forEach(function(r, idx) {
             var need = self.conditions.reqCounts[idx] || r.count;
-            if (managerUsed && need > 0) {
+            if (managerUsed && idx === managerGroupIdx && need > 0) {
                 need -= 1;
                 managerUsed = false;
             }
